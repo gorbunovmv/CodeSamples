@@ -14,13 +14,13 @@ BEGIN
 	
 	SET NOCOUNT ON 
 		
-	-- генерим @cntClients клиентов
+	-- generating @cntClients clients
 	EXEC CREATE_CLIENTS_SP @cntClients
 	
-	-- выпускаем @cntCards для каждого клиента
+	-- creating @cntCards for every client
 	EXEC CREATE_CARDS_SP @cntCards
 
-	--генерим @cntTrans операций
+	-- generating @cntTrans transactions
 	EXEC INSERT_TRANSACTIONS_SP @cntTrans, @Trans_dt
 
 END

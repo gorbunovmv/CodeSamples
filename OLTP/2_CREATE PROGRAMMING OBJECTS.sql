@@ -1,4 +1,4 @@
---функция генерации строки для ФИО
+--FIO-string generating function
 DROP FUNCTION IF EXISTS getString
 go
 CREATE FUNCTION getString (
@@ -21,7 +21,7 @@ END
 
 go 
 
---функция генерации номера карты
+--card number generating function
 DROP FUNCTION IF EXISTS getCardNumber
 go
 CREATE FUNCTION getCardNumber (
@@ -38,7 +38,7 @@ END
 
 go
 
---функция генерации срока действия карты
+--card duration generating function 
 DROP FUNCTION IF EXISTS getCardDuration
 go
 CREATE FUNCTION getCardDuration (
@@ -51,7 +51,7 @@ BEGIN
 	DECLARE @res DATE,
 			@days INT
 
-	-- карты будем выпускать со сроком действия от 1 до 9 дней
+	-- cards expire period will be from 1 till 9 days
 	SET @days = ROUND(@rnd*10,0)
 	SET @days = (SELECT CASE WHEN @days <> 0 THEN @days  
 						     ELSE 1 -- чтобы на 0 дней не выпустилась карта
@@ -65,7 +65,7 @@ END
 
 go
 
--- процедура генерации справочника клиентов
+-- customer list generating procedure 
 DROP PROC IF EXISTS CREATE_CLIENTS_SP 
 go
 CREATE PROC CREATE_CLIENTS_SP 
@@ -93,7 +93,7 @@ END
 
 go 
 
---генерация типа транзакции в диапазоне [1-4]
+-- transaction type generating function in range [1-4]
 DROP FUNCTION IF EXISTS getActionType
 go
 CREATE FUNCTION getActionType (
@@ -113,7 +113,7 @@ END
 
 go
 
---генерация суммы транзакции в диапазоне [1-10]
+--transaction amount generation function in range [1-10]
 DROP FUNCTION IF EXISTS getTransactionAmount
 go
 CREATE FUNCTION getTransactionAmount (
@@ -133,15 +133,15 @@ END
 
 go
 
--- процедура генерации карт
+-- cards generation procedure
 DROP PROC IF EXISTS CREATE_CARDS_SP
 go
 CREATE PROC CREATE_CARDS_SP
 	@cntCards INT
 AS
 BEGIN
-	-- в задании нет однозначного определения количества карт (на клиента или всего по всем случайным образом)
-	-- поэтому генерим каждому клиенту @cntCards карт
+	-- there is no unambiguous definition of cards quantity (by client or random by all ), 
+	-- so we'll generate @cntCards cards for every client 
 	SET NOCOUNT ON
 	
 	DECLARE @Client_ID	INT,
@@ -170,8 +170,8 @@ BEGIN
 			SELECT 
 				dbo.getCardNumber(RAND()), 
 				@Client_ID, 
-				GETDATE(), -- карты выпускаем сегодняшним днем
-				dbo.getCardDuration(RAND()) -- выпускаем карты с разным сроком действия
+				GETDATE(), -- card date start - today 
+				dbo.getCardDuration(RAND()) -- card duration value is different for every card
 
 			SET @cnt +=1
 		END
@@ -186,7 +186,7 @@ END
 
 go
 
--- Процедура вставки транзакций
+-- inserting transactions procedure
 DROP PROC IF EXISTS INSERT_TRANSACTIONS_SP
 go
 CREATE PROC INSERT_TRANSACTIONS_SP
@@ -194,8 +194,8 @@ CREATE PROC INSERT_TRANSACTIONS_SP
 	@Trans_dt	DATE
 AS 
 BEGIN
-	-- в задании нет однозначного определения количества транзакций (на клиента, в день, или всего по всем случайным образом)
-	-- поэтому генерим по каждой карте @cntTrans операций
+	-- there is no unambiguous definition of transactions quantity (by client, by day or random by all ), 
+	-- so we'll generate @cntTrans transactions for every card 
 	SET NOCOUNT ON
 
 	DECLARE @Card_ID	INT,
@@ -224,7 +224,7 @@ BEGIN
 
 			IF @Trans_dt NOT BETWEEN @Valid_From AND @Valid_To BEGIN
 				INSERT INTO LogMessages ([text])
-				SELECT N'Карта '+Card_Number+N' недействительна'
+				SELECT N'Card '+Card_Number+N' is expired'
 				FROM	Cards
 				WHERE	Card_ID = @Card_ID
 
@@ -235,10 +235,10 @@ BEGIN
 					AND 
 					(SELECT Balance FROM Cards WHERE Card_ID = @Card_ID) < @TransactionAmount BEGIN
 						INSERT INTO LogMessages([text])
-						SELECT N'Баланс карты '+Card_Number+N' недостаточен для проведения операции '+
+						SELECT N'Card remain '+Card_Number+N' is not enough for transactioning'+
 								(SELECT Action_Type_Desc FROM Action_Types WHERE Action_Type_Id = @Action_Type)+
-								N' на сумму '+ CAST(@TransactionAmount as NVARCHAR(20))+
-								N'. Доступный баланс: '+CAST(Balance as NVARCHAR(20)) 
+								N' amount '+ CAST(@TransactionAmount as NVARCHAR(20))+
+								N'. Avaliable funds: '+CAST(Balance as NVARCHAR(20)) 
 						FROM	Cards
 						WHERE	Card_ID = @Card_ID
 					
