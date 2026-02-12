@@ -1,2 +1,2 @@
 # CodeSamples
-Test tasks from various companies
+Test tasks for various companies
